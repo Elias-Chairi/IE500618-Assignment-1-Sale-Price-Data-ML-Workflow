@@ -110,7 +110,7 @@ wheels = [
 [[package]]
 name = "assignment-1-sale-price-data-ml-workflow"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "jupyterlab" },
     { name = "matplotlib" },
