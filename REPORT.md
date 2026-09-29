@@ -1,8 +1,5 @@
 # Part A
 
-**Answer Q1-Q7 in the written submission. Your Jupyter Notebook should contain the code, figures, tables and short reasoning that
-support the answers. Refer to evidence from your notebook where appropriate.**
-
 - **Q1.** What were the most important things you learned from exploring the dataset? Refer to relevant statistics, missing values, distributions, unusual observations and visualizations.
 
 Each row is one house sale in Ames, Iowa (2006-2010); the target is `SalePrice` in dollars (`01_eda` 1.1).
@@ -136,15 +133,19 @@ Anything learned from the target must be fitted on training folds only to avoid 
 
 # Part B
 
-**Group-work reflection. Briefly answer:**
-
 - **Q1.** How was the work divided among group members, and what did each member contribute?
 
-   Every member did the exercise on their own, then we sat down together and discussed each other's solutions to create the final one.
+   Every member first solved the whole assignment independently, so that everyone understood every
+   step. We then compared the three versions and combined the best parts into the final solution:
+
+   - **Rune:** the most thorough analysis: cross-validation, feature importances, the log-target
+     experiment and the stratification experiment (Appendix A).
+   - **Elias:** the final pipeline structure, with explicit column routes and feature engineering
+     inside the pipeline.
+   - **Marius:** rule-based handling of missing values checked against related columns, and the
+     alternative of stratifying on `SalePrice` quintiles.
 
 - **Q2.** Which important decisions were made together as a group?
-
-   **Decisions made together**
 
    - Stratifying on `Overall Qual`; another idea was to stratify using `SalePrice`.
    - Features added in the feature engineering part.
