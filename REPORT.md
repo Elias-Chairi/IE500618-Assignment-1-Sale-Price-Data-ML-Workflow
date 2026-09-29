@@ -39,18 +39,20 @@ median at every step. Random forest importances agree: engineered `Total SF` and
 
 - **Q3.** How did you create the training and test sets? Why should the test set be kept separate during model development, and how does this help provide an unbiased evaluation on unseen data?
 
-We created training and test sets to be able to have an unbiased evaluation of the model. If knowledge about the test set had leaked into the training, it would inflate the score without improving real performance.
+We made a **stratified 80/20 split** on `Overall Qual` (`random_state=42`), giving 2,344 training
+and 586 test rows (`02_modeling` 2.1-2.2). Sparse tails were merged into six bands (`1-4`, `5`, `6`,
+`7`, `8`, `9-10`); band proportions match within 0.1 percentage points. Testing 200 seeds per
+method (Appendix A) showed stratification balances bands but does **not** stabilise RMSE (F-test
+p = 0.97). We kept it because it costs nothing.
 
-We made a **stratified 80/20 split** on `Overall Qual` (`random_state=42`). Sparse tails were merged into six bands (`1-4`, `5`, `6`, `7`, `8`, `9-10`).
-
-**Why keep the test set separate** (`02_modeling` 2.1): it estimates performance on unseen houses,
-which is only honest if test data influenced nothing (feature choice, imputation, scaling).
-Leakage inflates the score without improving real performance. Our test set is
-used only in Step 6; models were compared with 5-fold CV on training data (5.2).
+**Why keep the test set separate**: it estimates performance on unseen houses, which is only
+honest if test data influenced nothing (feature choice, imputation, scaling). Leakage inflates the
+score without improving real performance. Our test set is used only in Step 6; models were
+compared with 5-fold CV on training data (5.2).
 
 - **Q4.** How did you handle missing values and categorical variables? Explain your main preprocessing decisions, including scaling or transformations if used. Why should preprocessing be learned from the training data and then applied to the test data?
 
-We used four preprocessing routes (`02_modeling` Step 3):
+We used four preprocessing routes (`02_modeling` 3.2, 4.5):
 
 | Route | Imputation | Encoding | Reason |
 |---|---|---|---|
@@ -59,35 +61,39 @@ We used four preprocessing routes (`02_modeling` Step 3):
 | `nom_absent` (5) | `"None"` | one-hot | `NaN` means the feature does not exist |
 | `nom_unknown` (20) | most frequent | one-hot | `NaN` is a recording failure |
 
-`MS SubClass` and `Mo Sold` even though they are numbers are past to the `nom_unknown` route, because 
-the meaning of them are categorical. Ordinal encoding keeps ratings in one ordered column, though it 
-assumes equal steps. Encoders ignore unseen categories. All models get the same features, the target 
-stays in dollars.
+`MS SubClass` and `Mo Sold` are numbers, but they are passed to the `nom_unknown` route because
+their meaning is categorical. Ordinal encoding keeps ratings in one ordered column, though it
+assumes equal steps. Encoders ignore unseen categories. All models get the same features; the
+target stays in dollars. The result is 2,341 × 259 with no missing values (4.6).
 
-**Why fit on training data only**: medians, means, standard deviations and category sets are
-statistics of the data, computing them before splitting leaks test information. Every step sits
-inside a `Pipeline`/`ColumnTransformer`, so `fit(X_train)` learns them and `predict(X_test)` only
-applies them.
+**Why fit on training data only** (3.1): medians, means, standard deviations and category sets are
+statistics of the data; computing them before splitting leaks test information. Feature
+engineering, imputation, encoding and scaling all sit inside one `Pipeline`, so `fit(X_train)`
+learns them and `predict(X_test)` only applies them.
 
 - **Q5.** Which features did you finally use for prediction? Did you remove any features or create new ones? Explain the reasoning behind your main feature-selection or feature-engineering decisions.
 
-**Created** (Step 4), row-wise so they cannot leak:
+We used **80 input columns** (259 after one-hot) (`02_modeling` 4.5-4.6).
+
+**Created** (4.1), row-wise so they cannot leak:
 
 - `Total SF` = basement + 1st + 2nd floor area
 - `Total Bath` = full baths + 0.5 × half baths (incl. basement)
 - `House Age` = `Yr Sold - Year Built`; `Remod Age` = `Yr Sold - Year Remod/Add` (clipped at 0)
 - `Total Porch SF` = sum of five porch/deck areas
 
-**Removed** (Step 3): `Order`, `PID` (identifiers); `Year Built`, `Year Remod/Add`, `Yr Sold`
+**Removed** (4.2): `Order`, `PID` (identifiers); `Year Built`, `Year Remod/Add`, `Yr Sold`
 (replaced by ages; price by sale year is flat); `Garage Yr Blt` (`NaN` for no garage, a 2207 typo).
 
 Everything else was kept, including `Sale Condition` so models can learn that non-normal sales
-differ. The three `Partial` outliers (Q1) were
-removed **from training only**, using a rule based on size and sale type, never price.
+differ. Some kept columns are exact sums of others (e.g. `Total SF`), which leaves predictions
+unaffected but makes individual linear coefficients uninterpretable (4.2). The three `Partial`
+outliers (Q1) were removed **from training only** (4.3), using a rule based on size and sale
+type, never price.
 
 - **Q6.** What RMSE and R² values did you obtain for each of the three models on the test data? Present your results clearly in a table. Which model performed best on the test data?
 
-Results:
+Results on the 586 test houses (`02_modeling` 6.2; test mean \$182,099, sd \$81,441):
 
 | Model | Test RMSE | Test R² |
 |---|---|---|
@@ -95,16 +101,37 @@ Results:
 | Decision Tree Regression | \$34,994 | 0.815 |
 | Random Forest Regression | \$24,162 | 0.912 |
 
-The Linear Regression model performed the best.
+**Linear Regression performed best**, but it is effectively tied with Random Forest: the \$238 gap
+is far below the CV standard deviations (\$1,671 and \$2,176) and the ~\$6,700 split-to-split
+variation (Appendix A). The **Decision Tree overfits** (training RMSE \$58 vs test \$34,994, 5.2);
+the forest's averaging reduces this. Our split is a favourable draw (17th percentile of 200 splits).
+
+RMSE is an aggregate: 72% of houses are within \$20,000, but the worst miss is \$152,509 (6.3).
 
 - **Q7.** Based on what you learned from the analysis, what could you change in the preprocessing or features to potentially improve the prediction results without changing to a different model?
 
-Ideas: 
-- Log-transform skewed features such as `Lot Area` (1.3).
-- Target-encode `Neighborhood` instead of 28 one-hot columns (1.8).
-- Space ordinal levels by training-set median price (Gd→Ex is ~500× Po→Fa) (3.2).
+**Tested: log-transform the target** (`02_modeling` 6.5) with `TransformedTargetRegressor`, so
+predictions return in dollars:
+
+| Model | RMSE raw | RMSE log | R² raw | R² log |
+|---|---|---|---|---|
+| Linear Regression | \$23,924 | **\$20,335** | 0.914 | **0.938** |
+| Decision Tree | \$34,994 | \$34,507 | 0.815 | 0.820 |
+| Random Forest | \$24,162 | \$24,615 | 0.912 | 0.908 |
+
+It clearly helps Linear Regression, whose squared-error fit was dominated by expensive houses; trees
+split on thresholds and barely change.
+
+**Other ideas**:
+
+- Log-transform skewed features such as `Lot Area` (`01_eda` 1.3).
+- Target-encode `Neighborhood` instead of 28 one-hot columns (`01_eda` 1.8).
+- Space ordinal levels by training-set median price; the `Kitchen Qual` step Gd→Ex is ~500× the
+  step Po→Fa (`02_modeling` 3.2).
 - Add interactions such as `Overall Qual × Total SF`.
-- Impute `Mas Vnr Type` as `"None"` only when `Mas Vnr Area == 0` (1.4).
+- Impute `Mas Vnr Type` as `"None"` only when `Mas Vnr Area == 0` (`01_eda` 1.4).
+
+Anything learned from the target must be fitted on training folds only to avoid leakage.
 
 
 # Part B
@@ -113,13 +140,13 @@ Ideas:
 
 - **Q1.** How was the work divided among group members, and what did each member contribute?
 
-   Every member did the exercise on their own, then we sat down together and discussed each others solutions, then to create the final one. 
+   Every member did the exercise on their own, then we sat down together and discussed each other's solutions to create the final one.
 
 - **Q2.** Which important decisions were made together as a group?
 
-   **Decissions made together**
+   **Decisions made together**
 
-   - Stratifying on `Overall Qual`, another idea was to stratify using `SalePrice`,
+   - Stratifying on `Overall Qual`; another idea was to stratify using `SalePrice`.
    - Features added in the feature engineering part.
 
 - **Q3.** How did you ensure that everyone understood the complete solution, not only their own part?
@@ -128,4 +155,4 @@ Ideas:
 
 - **Q4.** Was the work distributed fairly? Explain briefly. All group members are expected to understand the complete solution.
 
-   Yes, all members have had fair contributions to the project overall. Since every member made their own version of the assignment, everyone did        roughly the same amount of work.
+   Yes, all members have had fair contributions to the project overall. Since every member made their own version of the assignment, everyone did roughly the same amount of work.
