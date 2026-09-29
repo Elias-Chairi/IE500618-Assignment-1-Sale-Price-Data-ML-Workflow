@@ -113,19 +113,19 @@ Ideas:
 
 - **Q1.** How was the work divided among group members, and what did each member contribute?
 
-Every member did the exercise on their own, then we sat down together and discussed each others solutions, then to create the final one. 
+   Every member did the exercise on their own, then we sat down together and discussed each others solutions, then to create the final one. 
 
 - **Q2.** Which important decisions were made together as a group?
 
-**Decissions made together**
+   **Decissions made together**
 
-- Stratifying on `Overall Qual`, another idea was to stratify using `SalePrice`,
-- Features added in the feature engineering part.
+   - Stratifying on `Overall Qual`, another idea was to stratify using `SalePrice`,
+   - Features added in the feature engineering part.
 
 - **Q3.** How did you ensure that everyone understood the complete solution, not only their own part?
 
-By having physical meetings going through the project.
+   By having multiple physical meetings going through the project.
 
 - **Q4.** Was the work distributed fairly? Explain briefly. All group members are expected to understand the complete solution.
 
-Yes all members have had fair contributions to the project overall.
+   Yes, all members have had fair contributions to the project overall. Since every member made their own version of the assignment, everyone did        roughly the same amount of work.
