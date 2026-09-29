@@ -126,8 +126,8 @@ split on thresholds and barely change.
 
 - Log-transform skewed features such as `Lot Area` (`01_eda` 1.3).
 - Target-encode `Neighborhood` instead of 28 one-hot columns (`01_eda` 1.8).
-- Space ordinal levels by training-set median price; the `Kitchen Qual` step Gd→Ex is ~500× the
-  step Po→Fa (`02_modeling` 3.2).
+- Space ordinal levels by training-set median price; the `Kitchen Qual` step Gd→Ex is ~5× the
+  step Fa→TA (`02_modeling` 3.2).
 - Add interactions such as `Overall Qual × Total SF`.
 - Impute `Mas Vnr Type` as `"None"` only when `Mas Vnr Area == 0` (`01_eda` 1.4).
 
